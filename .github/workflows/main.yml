@@ -1,0 +1,40 @@
+name: Build IPA
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installa XcodeGen
+        run: brew install xcodegen
+
+      - name: Genera progetto Xcode
+        run: xcodegen generate
+
+      - name: Compila senza firma
+        run: |
+          xcodebuild -project MySafe.xcodeproj \
+            -scheme MySafe \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build
+
+      - name: Crea IPA
+        run: |
+          mkdir Payload
+          cp -R build/Build/Products/Release-iphoneos/MySafe.app Payload/
+          zip -r MySafe.ipa Payload
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MySafe-ipa
+          path: MySafe.ipa
