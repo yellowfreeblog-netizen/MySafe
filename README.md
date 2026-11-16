@@ -1,2 +1,1 @@
-# MySafe
-AirVault – Your Personal Airline Credentials Vault  AirVault is a simple, secure and private mobile application designed to store and manage airline system login credentials.  The app is intended for airline employees, airport personnel and aviation professionals who need a convenient place to securely organize their access credentials.
+MySafe is a simple and secure personal app for storing airline credentials. Save airline names, usernames and passwords in one private vault. Easily add, edit, search, copy and manage your credentials. Enjoy Face ID protection, encrypted storage and private cloud synchronization. Your data stays yours.
