@@ -1,0 +1,25 @@
+name: MySafe
+options:
+  bundleIdPrefix: com.yellowfreeblog-netizen
+  deploymentTarget:
+    iOS: "16.0"
+targets:
+  MySafe:
+    type: application
+    platform: iOS
+    sources:
+      - path: .
+        excludes:
+          - README.md
+          - project.yml
+          - .github
+    info:
+      path: Info.plist
+      properties:
+        UILaunchScreen: {}
+        NSFaceIDUsageDescription: "Sblocca la cassaforte"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.yellowfreeblog-netizen.mysafe
+        SWIFT_VERSION: "5.0"
+        CODE_SIGNING_ALLOWED: "NO"
