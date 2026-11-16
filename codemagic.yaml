@@ -1,0 +1,30 @@
+workflows:
+  mysafe-ios:
+    name: MySafe iOS
+    instance_type: mac_mini_m2
+    max_build_duration: 30
+    environment:
+      xcode: latest
+    scripts:
+      - name: Installa XcodeGen
+        script: brew install xcodegen
+      - name: Genera progetto
+        script: xcodegen generate
+      - name: Compila senza firma
+        script: |
+          xcodebuild -project MySafe.xcodeproj \
+            -scheme MySafe \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build
+      - name: Crea IPA
+        script: |
+          mkdir Payload
+          cp -R build/Build/Products/Release-iphoneos/MySafe.app Payload/
+          zip -r MySafe.ipa Payload
+    artifacts:
+      - MySafe.ipa
