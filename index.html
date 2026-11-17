@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="it">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -68,11 +68,11 @@ button.small{width:auto;padding:8px 12px;font-size:14px;border-radius:10px}
 const KEY="mysafe.vault.v1";
 const enc=new TextEncoder(),dec=new TextDecoder();
 const $app=document.getElementById("app");
-const TYPES={login:["🔑","Accesso"],card:["💳","Carta"],note:["📝","Nota"]};
+const TYPES={login:["🔑","Login"],card:["💳","Card"],note:["📝","Note"]};
 const FIELDS={
-  login:[["user","Utente / email","text"],["pass","Password","secret"],["url","Sito web","url"],["note","Note","area"]],
-  card:[["holder","Intestatario","text"],["number","Numero carta","secret"],["expiry","Scadenza (MM/AA)","text"],["cvv","CVV","secret"],["note","Note","area"]],
-  note:[["note","Testo","area"]]
+  login:[["user","Username / email","text"],["pass","Password","secret"],["url","Website","url"],["note","Notes","area"]],
+  card:[["holder","Cardholder","text"],["number","Card number","secret"],["expiry","Expiry (MM/YY)","text"],["cvv","CVV","secret"],["note","Notes","area"]],
+  note:[["note","Text","area"]]
 };
 let S={view:"boot",key:null,salt:null,items:[],q:"",filter:"all",cur:null,draft:null,err:"",shown:{}};
 
@@ -138,46 +138,46 @@ function render(){
   if(v==="settings")return viewSettings();
 }
 function viewOnboarding(){
-  $app.innerHTML=`<div class="center"><div class="logo">🔐</div><h1>Benvenuto in MySafe</h1>
-  <p class="sub">La tua cassaforte personale. I dati restano cifrati solo su questo dispositivo.</p></div>
-  <label>Crea la password principale</label>
-  <input id="p1" type="password" autocomplete="new-password" placeholder="Almeno 10 caratteri">
+  $app.innerHTML=`<div class="center"><div class="logo">🔐</div><h1>Welcome to MySafe</h1>
+  <p class="sub">Your personal vault. Data stays encrypted on this device only.</p></div>
+  <label>Create your master password</label>
+  <input id="p1" type="password" autocomplete="new-password" placeholder="At least 10 characters">
   ${meterHtml("m1")}
-  <label>Ripeti la password</label>
+  <label>Repeat the password</label>
   <input id="p2" type="password" autocomplete="new-password">
   <div class="err" id="err">${esc(S.err)}</div>
-  <button data-act="create">Crea cassaforte</button>
-  <p class="note">⚠️ Se dimentichi la password principale i dati non si possono recuperare: nessuno, nemmeno io, può aprirli. Usa spesso la funzione Esporta backup.</p>`;
+  <button data-act="create">Create vault</button>
+  <p class="note">⚠️ If you forget your master password your data cannot be recovered: nobody can open it. Export a backup often.</p>`;
   document.getElementById("p1").addEventListener("input",e=>setMeter("m1",e.target.value));
 }
 function viewLock(){
   $app.innerHTML=`<div class="center"><div class="logo">🔒</div><h1>MySafe</h1>
-  <p class="sub">Inserisci la password principale</p></div>
-  <input id="pw" type="password" autocomplete="current-password" placeholder="Password principale">
+  <p class="sub">Enter your master password</p></div>
+  <input id="pw" type="password" autocomplete="current-password" placeholder="Master password">
   <div class="err" id="err">${esc(S.err)}</div>
-  <button data-act="unlock" id="ub">Sblocca</button>
-  <p class="note" style="text-align:center">Già un backup? <a href="#" data-act="importLock" style="color:var(--acc)">Importa backup</a></p>`;
+  <button data-act="unlock" id="ub">Unlock</button>
+  <p class="note" style="text-align:center">Already have a backup? <a href="#" data-act="importLock" style="color:var(--acc)">Import backup</a></p>`;
   const i=document.getElementById("pw");
   i.addEventListener("keydown",e=>{if(e.key==="Enter")doUnlock()});
 }
 function filtered(){
   const q=S.q.trim().toLowerCase();
   return S.items.filter(it=>(S.filter==="all"||it.type===S.filter)&&(!q||[it.title,it.user,it.url,it.holder].some(x=>(x||"").toLowerCase().includes(q))))
-    .sort((a,b)=>a.title.localeCompare(b.title,"it"));
+    .sort((a,b)=>a.title.localeCompare(b.title,"en"));
 }
 function listHtml(){
   const L=filtered();
-  if(!S.items.length)return `<div class="empty">🗝️<br>La cassaforte è vuota.<br>Tocca + per aggiungere il primo elemento.</div>`;
-  if(!L.length)return `<div class="empty">Nessun risultato</div>`;
-  return L.map(it=>`<div class="item" data-act="open" data-id="${esc(it.id)}"><div class="ico">${TYPES[it.type][0]}</div><div><div class="t">${esc(it.title)}</div><div class="s">${esc(it.user||it.holder||(it.type==="note"?"Nota":TYPES[it.type][1]))}</div></div><div style="color:var(--mut)">›</div></div>`).join("");
+  if(!S.items.length)return `<div class="empty">🗝️<br>Your vault is empty.<br>Tap + to add your first item.</div>`;
+  if(!L.length)return `<div class="empty">No results</div>`;
+  return L.map(it=>`<div class="item" data-act="open" data-id="${esc(it.id)}"><div class="ico">${TYPES[it.type][0]}</div><div><div class="t">${esc(it.title)}</div><div class="s">${esc(it.user||it.holder||(it.type==="note"?"Note":TYPES[it.type][1]))}</div></div><div style="color:var(--mut)">›</div></div>`).join("");
 }
 function viewList(){
   const chip=(k,l)=>`<button class="chip ${S.filter===k?"on":""}" data-act="filter" data-k="${k}">${l}</button>`;
   $app.innerHTML=`<div class="bar"><h1>MySafe</h1><div class="row fit"><button class="small sec" data-act="settings">⚙️</button><button class="small sec" data-act="lock">🔒</button></div></div>
-  <input id="q" type="search" placeholder="Cerca" value="${esc(S.q)}">
-  <div class="chips">${chip("all","Tutti")}${chip("login","🔑 Accessi")}${chip("card","💳 Carte")}${chip("note","📝 Note")}</div>
+  <input id="q" type="search" placeholder="Search" value="${esc(S.q)}">
+  <div class="chips">${chip("all","All")}${chip("login","🔑 Logins")}${chip("card","💳 Cards")}${chip("note","📝 Notes")}</div>
   <div id="list">${listHtml()}</div>
-  <button class="fab" data-act="add" aria-label="Aggiungi">+</button>`;
+  <button class="fab" data-act="add" aria-label="Add">+</button>`;
   document.getElementById("q").addEventListener("input",e=>{S.q=e.target.value;document.getElementById("list").innerHTML=listHtml()});
 }
 function curItem(){return S.items.find(i=>i.id===S.cur)}
@@ -189,38 +189,38 @@ function viewDetail(){
     const secret=t==="secret",shown=S.shown[k];
     const disp=secret&&!shown?"•".repeat(Math.min(val.length,14)):val;
     f+=`<div class="field"><div class="k">${l}</div><div class="v">${esc(disp)}</div><div class="a">
-    ${secret?`<button class="small sec" data-act="toggle" data-k="${k}">${shown?"Nascondi":"Mostra"}</button>`:""}
-    ${t!=="area"?`<button class="small sec" data-act="copy" data-k="${k}">Copia</button>`:""}
-    ${t==="url"?`<button class="small sec" data-act="visit" data-k="${k}">Apri</button>`:""}</div></div>`;
+    ${secret?`<button class="small sec" data-act="toggle" data-k="${k}">${shown?"Hide":"Show"}</button>`:""}
+    ${t!=="area"?`<button class="small sec" data-act="copy" data-k="${k}">Copy</button>`:""}
+    ${t==="url"?`<button class="small sec" data-act="visit" data-k="${k}">Open</button>`:""}</div></div>`;
   }
-  $app.innerHTML=`<div class="bar"><button class="back" data-act="back">‹ Indietro</button><button class="small sec" data-act="edit">Modifica</button></div>
+  $app.innerHTML=`<div class="bar"><button class="back" data-act="back">‹ Back</button><button class="small sec" data-act="edit">Edit</button></div>
   <div class="row" style="justify-content:flex-start;gap:12px;margin:6px 0 10px"><div class="ico fit">${TYPES[it.type][0]}</div><h2>${esc(it.title)}</h2></div>
-  ${f||'<div class="empty">Nessun dettaglio</div>'}
-  <p class="note">Modificato: ${new Date(it.updated).toLocaleString("it-IT")}</p>
-  <button class="bad" data-act="delete" style="margin-top:14px">Elimina</button>`;
+  ${f||'<div class="empty">No details</div>'}
+  <p class="note">Modified: ${new Date(it.updated).toLocaleString("en-GB")}</p>
+  <button class="bad" data-act="delete" style="margin-top:14px">Delete</button>`;
 }
 function viewEdit(){
   const d=S.draft,isNew=!S.cur;
-  let f=`<label>Titolo</label><input data-f="title" value="${esc(d.title)}" placeholder="Es. Gmail, Banca, Wi-Fi casa">`;
+  let f=`<label>Title</label><input data-f="title" value="${esc(d.title)}" placeholder="E.g. Gmail, Bank, Home Wi-Fi">`;
   for(const [k,l,t] of FIELDS[d.type]){
     if(t==="area")f+=`<label>${l}</label><textarea data-f="${k}">${esc(d[k])}</textarea>`;
-    else if(k==="pass")f+=`<label>${l}</label><div class="row"><input data-f="${k}" id="pf" value="${esc(d[k])}" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="small sec fit" data-act="gen">Genera</button></div>${meterHtml("m3")}`;
+    else if(k==="pass")f+=`<label>${l}</label><div class="row"><input data-f="${k}" id="pf" value="${esc(d[k])}" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="small sec fit" data-act="gen">Generate</button></div>${meterHtml("m3")}`;
     else f+=`<label>${l}</label><input data-f="${k}" value="${esc(d[k])}" ${t==="url"?'type="url" inputmode="url"':'inputmode="'+(k==="number"||k==="cvv"?"numeric":"text")+'"'} autocomplete="off" autocapitalize="off" spellcheck="false">`;
   }
-  $app.innerHTML=`<div class="bar"><button class="back" data-act="cancel">‹ Annulla</button><h2>${isNew?"Nuovo elemento":"Modifica"}</h2><button class="small" data-act="save">Salva</button></div>
+  $app.innerHTML=`<div class="bar"><button class="back" data-act="cancel">‹ Cancel</button><h2>${isNew?"New item":"Edit"}</h2><button class="small" data-act="save">Save</button></div>
   ${isNew?`<div class="seg">${Object.keys(TYPES).map(k=>`<button class="${d.type===k?"on":""}" data-act="type" data-k="${k}">${TYPES[k][0]} ${TYPES[k][1]}</button>`).join("")}</div>`:""}
   ${f}<div class="err" id="err">${esc(S.err)}</div>`;
   $app.querySelectorAll("[data-f]").forEach(el=>el.addEventListener("input",e=>{S.draft[e.target.dataset.f]=e.target.value;if(e.target.id==="pf")setMeter("m3",e.target.value)}));
   const pf=document.getElementById("pf");if(pf)setMeter("m3",pf.value);
 }
 function viewSettings(){
-  $app.innerHTML=`<div class="bar"><button class="back" data-act="back">‹ Indietro</button><h2>Impostazioni</h2><span></span></div>
-  <div class="field"><div class="k">Elementi salvati</div><div class="v">${S.items.length}</div></div>
-  <button class="sec" data-act="export" style="margin:8px 0">⬇️ Esporta backup cifrato</button>
-  <button class="sec" data-act="import" style="margin:8px 0">⬆️ Importa backup</button>
-  <button class="sec" data-act="chpw" style="margin:8px 0">🔑 Cambia password principale</button>
-  <button class="bad" data-act="wipe" style="margin:8px 0">🗑️ Elimina tutti i dati</button>
-  <p class="note">Blocco automatico dopo 2 minuti di inattività o 30 secondi in background. Il backup è un file cifrato con la tua password principale: puoi salvarlo in File o iCloud Drive senza rischi.</p>
+  $app.innerHTML=`<div class="bar"><button class="back" data-act="back">‹ Back</button><h2>Settings</h2><span></span></div>
+  <div class="field"><div class="k">Saved items</div><div class="v">${S.items.length}</div></div>
+  <button class="sec" data-act="export" style="margin:8px 0">⬇️ Export encrypted backup</button>
+  <button class="sec" data-act="import" style="margin:8px 0">⬆️ Import backup</button>
+  <button class="sec" data-act="chpw" style="margin:8px 0">🔑 Change master password</button>
+  <button class="bad" data-act="wipe" style="margin:8px 0">🗑️ Delete all data</button>
+  <p class="note">Auto-lock after 2 minutes of inactivity or 30 seconds in the background. The backup is a file encrypted with your master password: you can safely save it in Files or iCloud Drive.</p>
   <input type="file" id="file" accept=".json,application/json" style="display:none">`;
   document.getElementById("file").addEventListener("change",e=>doImport(e.target.files[0]));
 }
@@ -228,42 +228,42 @@ function viewSettings(){
 /* ---------- azioni ---------- */
 async function doCreate(){
   const p1=document.getElementById("p1").value,p2=document.getElementById("p2").value;
-  if(p1.length<10){S.err="La password deve avere almeno 10 caratteri.";return viewOnboarding()}
-  if(p1!==p2){S.err="Le password non coincidono.";return viewOnboarding()}
-  setBusy("Creazione in corso…");
+  if(p1.length<10){S.err="The password must be at least 10 characters.";return viewOnboarding()}
+  if(p1!==p2){S.err="The passwords do not match.";return viewOnboarding()}
+  setBusy("Creating…");
   S.salt=rnd(16);S.key=await derive(p1,S.salt);S.items=[];await persist();
   S.err="";S.view="list";bump();render();
 }
 async function doUnlock(){
   const pw=document.getElementById("pw").value;if(!pw)return;
-  setBusy("Sblocco…");
+  setBusy("Unlocking…");
   try{
     const v=JSON.parse(localStorage.getItem(KEY));
     const salt=unb64(v.salt),key=await derive(pw,salt);
     const data=await decrypt(key,v.iv,v.ct);
     S.salt=salt;S.key=key;S.items=data.items||[];S.err="";S.view="list";bump();render();
-  }catch(e){S.err="Password errata.";viewLock()}
+  }catch(e){S.err="Wrong password.";viewLock()}
 }
 function setBusy(m){const b=document.querySelector("button[data-act]");if(b){b.disabled=true;b.textContent=m}}
 function newDraft(type){return {type,title:"",user:"",pass:"",url:"",holder:"",number:"",expiry:"",cvv:"",note:""}}
 async function doSave(){
   const d=S.draft;
-  if(!d.title.trim()){S.err="Inserisci un titolo.";return viewEdit()}
+  if(!d.title.trim()){S.err="Enter a title.";return viewEdit()}
   d.title=d.title.trim();d.updated=Date.now();
   if(S.cur){const i=S.items.findIndex(x=>x.id===S.cur);S.items[i]=Object.assign({},d,{id:S.cur})}
   else{d.id=b64(rnd(9)).replace(/[+/=]/g,"x");S.items.push(d);S.cur=d.id}
-  await persist();S.err="";S.draft=null;S.shown={};S.view="detail";render();toast("Salvato");
+  await persist();S.err="";S.draft=null;S.shown={};S.view="detail";render();toast("Saved");
 }
 async function copy(txt){
-  try{await navigator.clipboard.writeText(txt);toast("Copiato (si cancella tra 30 s)");
+  try{await navigator.clipboard.writeText(txt);toast("Copied (clears in 30 s)");
     clearTimeout(copy.t);copy.t=setTimeout(()=>{navigator.clipboard.writeText(" ").catch(()=>{})},30000)}
-  catch(e){toast("Copia non riuscita")}
+  catch(e){toast("Copy failed")}
 }
 async function doExport(){
   const raw=localStorage.getItem(KEY);if(!raw)return;
   const name="mysafe-backup-"+new Date().toISOString().slice(0,10)+".json";
   const file=new File([raw],name,{type:"application/json"});
-  try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:"Backup MySafe"});return}}catch(e){if(e.name==="AbortError")return}
+  try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:"MySafe backup"});return}}catch(e){if(e.name==="AbortError")return}
   const a=document.createElement("a");a.href=URL.createObjectURL(file);a.download=name;document.body.appendChild(a);a.click();a.remove();
 }
 async function doImport(f){
@@ -271,19 +271,19 @@ async function doImport(f){
   try{
     const txt=await f.text();const v=JSON.parse(txt);
     if(!v.salt||!v.iv||!v.ct)throw 0;
-    const pw=prompt("Password principale di questo backup:");if(!pw)return;
+    const pw=prompt("Master password of this backup:");if(!pw)return;
     const salt=unb64(v.salt),key=await derive(pw,salt);
     const data=await decrypt(key,v.iv,v.ct);
-    if(S.key&&!confirm("Questo sostituirà i dati attuali con quelli del backup. Continuare?"))return;
+    if(S.key&&!confirm("This will replace your current data with the backup. Continue?"))return;
     localStorage.setItem(KEY,txt);
-    S.salt=salt;S.key=key;S.items=data.items||[];S.view="list";bump();render();toast("Backup importato");
-  }catch(e){alert("Backup non valido o password errata.")}
+    S.salt=salt;S.key=key;S.items=data.items||[];S.view="list";bump();render();toast("Backup imported");
+  }catch(e){alert("Invalid backup or wrong password.")}
 }
 async function doChangePw(){
-  const a=prompt("Nuova password principale (min. 10 caratteri):");if(!a)return;
-  if(a.length<10)return alert("Troppo corta.");
-  const b=prompt("Ripeti la nuova password:");if(a!==b)return alert("Non coincidono.");
-  S.salt=rnd(16);S.key=await derive(a,S.salt);await persist();toast("Password cambiata");
+  const a=prompt("New master password (min. 10 characters):");if(!a)return;
+  if(a.length<10)return alert("Too short.");
+  const b=prompt("Repeat the new password:");if(a!==b)return alert("They do not match.");
+  S.salt=rnd(16);S.key=await derive(a,S.salt);await persist();toast("Password changed");
 }
 
 /* ---------- eventi ---------- */
@@ -307,11 +307,11 @@ $app.addEventListener("click",async e=>{
   if(act==="toggle"){S.shown[el.dataset.k]=!S.shown[el.dataset.k];return viewDetail()}
   if(act==="copy")return copy(curItem()[el.dataset.k]);
   if(act==="visit"){let u=curItem()[el.dataset.k];if(!/^https?:\/\//i.test(u))u="https://"+u;window.open(u,"_blank","noopener");return}
-  if(act==="delete"){if(confirm("Eliminare questo elemento?")){S.items=S.items.filter(i=>i.id!==S.cur);await persist();S.cur=null;S.view="list";render();toast("Eliminato")}return}
+  if(act==="delete"){if(confirm("Delete this item?")){S.items=S.items.filter(i=>i.id!==S.cur);await persist();S.cur=null;S.view="list";render();toast("Deleted")}return}
   if(act==="export")return doExport();
   if(act==="import")return document.getElementById("file").click();
   if(act==="chpw")return doChangePw();
-  if(act==="wipe"){if(confirm("Eliminare TUTTI i dati? L'operazione non è reversibile.")&&confirm("Sei sicuro? Hai fatto un backup?")){localStorage.removeItem(KEY);S.key=null;S.items=[];S.view="onboarding";render()}return}
+  if(act==="wipe"){if(confirm("Delete ALL data? This cannot be undone.")&&confirm("Are you sure? Did you make a backup?")){localStorage.removeItem(KEY);S.key=null;S.items=[];S.view="onboarding";render()}return}
 });
 
 /* ---------- avvio ---------- */
@@ -327,7 +327,7 @@ $app.addEventListener("click",async e=>{
   }catch(e){}
 })();
 if(!window.crypto||!crypto.subtle){
-  $app.innerHTML='<div class="empty">Questo browser non supporta la crittografia necessaria. Apri la pagina con Safari tramite HTTPS.</div>';
+  $app.innerHTML='<div class="empty">This browser does not support the required encryption. Open the page in Safari over HTTPS.</div>';
 }else{
   S.view=localStorage.getItem(KEY)?"lock":"onboarding";render();
 }
