@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MySafe">
+<meta name="theme-color" content="#0b1220">
+<meta name="referrer" content="no-referrer">
+<title>MySafe</title>
+<style>
+:root{--bg:#0b1220;--card:#131c2e;--card2:#1a2540;--line:#243253;--tx:#eaf0ff;--mut:#8b9ac0;--acc:#4f8cff;--ok:#2fbf71;--bad:#ff5d6c}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);min-height:100vh}
+#app{max-width:560px;margin:0 auto;padding:16px 16px 90px}
+h1{font-size:28px;margin:8px 0 4px}
+h2{font-size:20px;margin:0}
+p.sub{color:var(--mut);margin:0 0 18px}
+.center{text-align:center;padding-top:8vh}
+.logo{font-size:64px}
+input,textarea,select{width:100%;background:var(--card);color:var(--tx);border:1px solid var(--line);border-radius:12px;padding:14px;font-size:16px;outline:none;font-family:inherit}
+input:focus,textarea:focus{border-color:var(--acc)}
+textarea{min-height:110px;resize:vertical}
+label{display:block;color:var(--mut);font-size:13px;margin:14px 0 6px}
+button{font:inherit;border:0;border-radius:12px;padding:14px 16px;background:var(--acc);color:#fff;font-weight:600;width:100%;cursor:pointer}
+button.sec{background:var(--card2);color:var(--tx)}
+button.bad{background:transparent;color:var(--bad);border:1px solid var(--bad)}
+button.small{width:auto;padding:8px 12px;font-size:14px;border-radius:10px}
+.row{display:flex;gap:10px;align-items:center}
+.row>*{flex:1}
+.row>.fit{flex:0 0 auto}
+.err{color:var(--bad);margin:10px 0;min-height:20px;font-size:14px}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.bar h1{margin:0}
+.chips{display:flex;gap:8px;overflow-x:auto;margin:12px 0;padding-bottom:4px}
+.chip{flex:0 0 auto;width:auto;padding:8px 14px;border-radius:20px;background:var(--card);color:var(--mut);font-size:14px;font-weight:500}
+.chip.on{background:var(--acc);color:#fff}
+.item{display:flex;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:8px 0;cursor:pointer}
+.ico{width:42px;height:42px;border-radius:11px;background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:21px;flex:0 0 auto}
+.item .t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .s{color:var(--mut);font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item>div:nth-child(2){min-width:0;flex:1}
+.field{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:10px 0}
+.field .k{color:var(--mut);font-size:13px}
+.field .v{font-size:17px;word-break:break-all;white-space:pre-wrap;margin:2px 0 8px}
+.field .a{display:flex;gap:8px}
+.empty{text-align:center;color:var(--mut);padding:50px 10px}
+.fab{position:fixed;right:max(18px,env(safe-area-inset-right));bottom:max(22px,calc(env(safe-area-inset-bottom) + 12px));width:60px;height:60px;border-radius:30px;font-size:30px;padding:0;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:100px;background:#fff;color:#111;padding:10px 16px;border-radius:20px;font-size:14px;font-weight:600;opacity:0;transition:.25s;pointer-events:none;z-index:9}
+.toast.show{opacity:1}
+.note{color:var(--mut);font-size:13px;margin:10px 0}
+.meter{height:5px;border-radius:3px;background:var(--line);margin-top:8px;overflow:hidden}
+.meter i{display:block;height:100%;width:0;background:var(--bad);transition:.2s}
+.back{background:none;color:var(--acc);width:auto;padding:6px 0;font-weight:500}
+.seg{display:flex;gap:8px;margin:6px 0}
+.seg button{background:var(--card);color:var(--mut);padding:10px 4px;font-size:14px}
+.seg button.on{background:var(--acc);color:#fff}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast" class="toast"></div>
+<script>
+"use strict";
+const KEY="mysafe.vault.v1";
+const enc=new TextEncoder(),dec=new TextDecoder();
+const $app=document.getElementById("app");
+const TYPES={login:["🔑","Accesso"],card:["💳","Carta"],note:["📝","Nota"]};
+const FIELDS={
+  login:[["user","Utente / email","text"],["pass","Password","secret"],["url","Sito web","url"],["note","Note","area"]],
+  card:[["holder","Intestatario","text"],["number","Numero carta","secret"],["expiry","Scadenza (MM/AA)","text"],["cvv","CVV","secret"],["note","Note","area"]],
+  note:[["note","Testo","area"]]
+};
+let S={view:"boot",key:null,salt:null,items:[],q:"",filter:"all",cur:null,draft:null,err:"",shown:{}};
+
+/* ---------- utilità ---------- */
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const b64=u=>{let s="";u=new Uint8Array(u);for(let i=0;i<u.length;i++)s+=String.fromCharCode(u[i]);return btoa(s)};
+const unb64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+const rnd=n=>crypto.getRandomValues(new Uint8Array(n));
+function toast(m){const t=document.getElementById("toast");t.textContent=m;t.classList.add("show");clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove("show"),1600)}
+
+/* ---------- crittografia (PBKDF2 + AES-GCM) ---------- */
+async function derive(pw,salt){
+  const base=await crypto.subtle.importKey("raw",enc.encode(pw),"PBKDF2",false,["deriveKey"]);
+  return crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:310000,hash:"SHA-256"},base,{name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+}
+async function encrypt(key,obj){
+  const iv=rnd(12);
+  const ct=await crypto.subtle.encrypt({name:"AES-GCM",iv},key,enc.encode(JSON.stringify(obj)));
+  return {iv:b64(iv),ct:b64(ct)};
+}
+async function decrypt(key,iv,ct){
+  const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:unb64(iv)},key,unb64(ct));
+  return JSON.parse(dec.decode(pt));
+}
+async function persist(){
+  const e=await encrypt(S.key,{items:S.items});
+  localStorage.setItem(KEY,JSON.stringify({v:1,salt:b64(S.salt),iv:e.iv,ct:e.ct}));
+}
+
+/* ---------- blocco automatico ---------- */
+let idle,hiddenAt=0;
+function lock(){S.key=null;S.items=[];S.cur=null;S.draft=null;S.q="";S.err="";S.shown={};S.view="lock";render()}
+function bump(){clearTimeout(idle);if(S.key)idle=setTimeout(lock,120000)}
+["touchstart","click","keydown"].forEach(e=>addEventListener(e,bump,{passive:true}));
+document.addEventListener("visibilitychange",()=>{
+  if(document.hidden){hiddenAt=Date.now()}
+  else if(S.key&&hiddenAt&&Date.now()-hiddenAt>30000){lock()}
+});
+
+/* ---------- generatore password ---------- */
+function genPass(n=18){
+  const set="abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%&*?-_";
+  const lim=256-(256%set.length);let out="";
+  while(out.length<n){for(const b of rnd(32)){if(b<lim&&out.length<n)out+=set[b%set.length]}}
+  return out;
+}
+function strength(p){
+  let s=0;if(p.length>=8)s++;if(p.length>=12)s++;if(p.length>=16)s++;
+  if(/[a-z]/.test(p)&&/[A-Z]/.test(p))s++;if(/\d/.test(p))s++;if(/[^A-Za-z0-9]/.test(p))s++;
+  return Math.min(s,5)/5;
+}
+function meterHtml(id){return `<div class="meter"><i id="${id}"></i></div>`}
+function setMeter(id,p){const m=document.getElementById(id);if(!m)return;const v=strength(p);m.style.width=(v*100)+"%";m.style.background=v<.4?"var(--bad)":v<.8?"#f5a623":"var(--ok)"}
+
+/* ---------- viste ---------- */
+function render(){
+  const v=S.view;
+  if(v==="onboarding")return viewOnboarding();
+  if(v==="lock")return viewLock();
+  if(v==="list")return viewList();
+  if(v==="detail")return viewDetail();
+  if(v==="edit")return viewEdit();
+  if(v==="settings")return viewSettings();
+}
+function viewOnboarding(){
+  $app.innerHTML=`<div class="center"><div class="logo">🔐</div><h1>Benvenuto in MySafe</h1>
+  <p class="sub">La tua cassaforte personale. I dati restano cifrati solo su questo dispositivo.</p></div>
+  <label>Crea la password principale</label>
+  <input id="p1" type="password" autocomplete="new-password" placeholder="Almeno 10 caratteri">
+  ${meterHtml("m1")}
+  <label>Ripeti la password</label>
+  <input id="p2" type="password" autocomplete="new-password">
+  <div class="err" id="err">${esc(S.err)}</div>
+  <button data-act="create">Crea cassaforte</button>
+  <p class="note">⚠️ Se dimentichi la password principale i dati non si possono recuperare: nessuno, nemmeno io, può aprirli. Usa spesso la funzione Esporta backup.</p>`;
+  document.getElementById("p1").addEventListener("input",e=>setMeter("m1",e.target.value));
+}
+function viewLock(){
+  $app.innerHTML=`<div class="center"><div class="logo">🔒</div><h1>MySafe</h1>
+  <p class="sub">Inserisci la password principale</p></div>
+  <input id="pw" type="password" autocomplete="current-password" placeholder="Password principale">
+  <div class="err" id="err">${esc(S.err)}</div>
+  <button data-act="unlock" id="ub">Sblocca</button>
+  <p class="note" style="text-align:center">Già un backup? <a href="#" data-act="importLock" style="color:var(--acc)">Importa backup</a></p>`;
+  const i=document.getElementById("pw");
+  i.addEventListener("keydown",e=>{if(e.key==="Enter")doUnlock()});
+}
+function filtered(){
+  const q=S.q.trim().toLowerCase();
+  return S.items.filter(it=>(S.filter==="all"||it.type===S.filter)&&(!q||[it.title,it.user,it.url,it.holder].some(x=>(x||"").toLowerCase().includes(q))))
+    .sort((a,b)=>a.title.localeCompare(b.title,"it"));
+}
+function listHtml(){
+  const L=filtered();
+  if(!S.items.length)return `<div class="empty">🗝️<br>La cassaforte è vuota.<br>Tocca + per aggiungere il primo elemento.</div>`;
+  if(!L.length)return `<div class="empty">Nessun risultato</div>`;
+  return L.map(it=>`<div class="item" data-act="open" data-id="${esc(it.id)}"><div class="ico">${TYPES[it.type][0]}</div><div><div class="t">${esc(it.title)}</div><div class="s">${esc(it.user||it.holder||(it.type==="note"?"Nota":TYPES[it.type][1]))}</div></div><div style="color:var(--mut)">›</div></div>`).join("");
+}
+function viewList(){
+  const chip=(k,l)=>`<button class="chip ${S.filter===k?"on":""}" data-act="filter" data-k="${k}">${l}</button>`;
+  $app.innerHTML=`<div class="bar"><h1>MySafe</h1><div class="row fit"><button class="small sec" data-act="settings">⚙️</button><button class="small sec" data-act="lock">🔒</button></div></div>
+  <input id="q" type="search" placeholder="Cerca" value="${esc(S.q)}">
+  <div class="chips">${chip("all","Tutti")}${chip("login","🔑 Accessi")}${chip("card","💳 Carte")}${chip("note","📝 Note")}</div>
+  <div id="list">${listHtml()}</div>
+  <button class="fab" data-act="add" aria-label="Aggiungi">+</button>`;
+  document.getElementById("q").addEventListener("input",e=>{S.q=e.target.value;document.getElementById("list").innerHTML=listHtml()});
+}
+function curItem(){return S.items.find(i=>i.id===S.cur)}
+function viewDetail(){
+  const it=curItem();if(!it){S.view="list";return render()}
+  let f="";
+  for(const [k,l,t] of FIELDS[it.type]){
+    const val=it[k];if(!val)continue;
+    const secret=t==="secret",shown=S.shown[k];
+    const disp=secret&&!shown?"•".repeat(Math.min(val.length,14)):val;
+    f+=`<div class="field"><div class="k">${l}</div><div class="v">${esc(disp)}</div><div class="a">
+    ${secret?`<button class="small sec" data-act="toggle" data-k="${k}">${shown?"Nascondi":"Mostra"}</button>`:""}
+    ${t!=="area"?`<button class="small sec" data-act="copy" data-k="${k}">Copia</button>`:""}
+    ${t==="url"?`<button class="small sec" data-act="visit" data-k="${k}">Apri</button>`:""}</div></div>`;
+  }
+  $app.innerHTML=`<div class="bar"><button class="back" data-act="back">‹ Indietro</button><button class="small sec" data-act="edit">Modifica</button></div>
+  <div class="row" style="justify-content:flex-start;gap:12px;margin:6px 0 10px"><div class="ico fit">${TYPES[it.type][0]}</div><h2>${esc(it.title)}</h2></div>
+  ${f||'<div class="empty">Nessun dettaglio</div>'}
+  <p class="note">Modificato: ${new Date(it.updated).toLocaleString("it-IT")}</p>
+  <button class="bad" data-act="delete" style="margin-top:14px">Elimina</button>`;
+}
+function viewEdit(){
+  const d=S.draft,isNew=!S.cur;
+  let f=`<label>Titolo</label><input data-f="title" value="${esc(d.title)}" placeholder="Es. Gmail, Banca, Wi-Fi casa">`;
+  for(const [k,l,t] of FIELDS[d.type]){
+    if(t==="area")f+=`<label>${l}</label><textarea data-f="${k}">${esc(d[k])}</textarea>`;
+    else if(k==="pass")f+=`<label>${l}</label><div class="row"><input data-f="${k}" id="pf" value="${esc(d[k])}" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="small sec fit" data-act="gen">Genera</button></div>${meterHtml("m3")}`;
+    else f+=`<label>${l}</label><input data-f="${k}" value="${esc(d[k])}" ${t==="url"?'type="url" inputmode="url"':'inputmode="'+(k==="number"||k==="cvv"?"numeric":"text")+'"'} autocomplete="off" autocapitalize="off" spellcheck="false">`;
+  }
+  $app.innerHTML=`<div class="bar"><button class="back" data-act="cancel">‹ Annulla</button><h2>${isNew?"Nuovo elemento":"Modifica"}</h2><button class="small" data-act="save">Salva</button></div>
+  ${isNew?`<div class="seg">${Object.keys(TYPES).map(k=>`<button class="${d.type===k?"on":""}" data-act="type" data-k="${k}">${TYPES[k][0]} ${TYPES[k][1]}</button>`).join("")}</div>`:""}
+  ${f}<div class="err" id="err">${esc(S.err)}</div>`;
+  $app.querySelectorAll("[data-f]").forEach(el=>el.addEventListener("input",e=>{S.draft[e.target.dataset.f]=e.target.value;if(e.target.id==="pf")setMeter("m3",e.target.value)}));
+  const pf=document.getElementById("pf");if(pf)setMeter("m3",pf.value);
+}
+function viewSettings(){
+  $app.innerHTML=`<div class="bar"><button class="back" data-act="back">‹ Indietro</button><h2>Impostazioni</h2><span></span></div>
+  <div class="field"><div class="k">Elementi salvati</div><div class="v">${S.items.length}</div></div>
+  <button class="sec" data-act="export" style="margin:8px 0">⬇️ Esporta backup cifrato</button>
+  <button class="sec" data-act="import" style="margin:8px 0">⬆️ Importa backup</button>
+  <button class="sec" data-act="chpw" style="margin:8px 0">🔑 Cambia password principale</button>
+  <button class="bad" data-act="wipe" style="margin:8px 0">🗑️ Elimina tutti i dati</button>
+  <p class="note">Blocco automatico dopo 2 minuti di inattività o 30 secondi in background. Il backup è un file cifrato con la tua password principale: puoi salvarlo in File o iCloud Drive senza rischi.</p>
+  <input type="file" id="file" accept=".json,application/json" style="display:none">`;
+  document.getElementById("file").addEventListener("change",e=>doImport(e.target.files[0]));
+}
+
+/* ---------- azioni ---------- */
+async function doCreate(){
+  const p1=document.getElementById("p1").value,p2=document.getElementById("p2").value;
+  if(p1.length<10){S.err="La password deve avere almeno 10 caratteri.";return viewOnboarding()}
+  if(p1!==p2){S.err="Le password non coincidono.";return viewOnboarding()}
+  setBusy("Creazione in corso…");
+  S.salt=rnd(16);S.key=await derive(p1,S.salt);S.items=[];await persist();
+  S.err="";S.view="list";bump();render();
+}
+async function doUnlock(){
+  const pw=document.getElementById("pw").value;if(!pw)return;
+  setBusy("Sblocco…");
+  try{
+    const v=JSON.parse(localStorage.getItem(KEY));
+    const salt=unb64(v.salt),key=await derive(pw,salt);
+    const data=await decrypt(key,v.iv,v.ct);
+    S.salt=salt;S.key=key;S.items=data.items||[];S.err="";S.view="list";bump();render();
+  }catch(e){S.err="Password errata.";viewLock()}
+}
+function setBusy(m){const b=document.querySelector("button[data-act]");if(b){b.disabled=true;b.textContent=m}}
+function newDraft(type){return {type,title:"",user:"",pass:"",url:"",holder:"",number:"",expiry:"",cvv:"",note:""}}
+async function doSave(){
+  const d=S.draft;
+  if(!d.title.trim()){S.err="Inserisci un titolo.";return viewEdit()}
+  d.title=d.title.trim();d.updated=Date.now();
+  if(S.cur){const i=S.items.findIndex(x=>x.id===S.cur);S.items[i]=Object.assign({},d,{id:S.cur})}
+  else{d.id=b64(rnd(9)).replace(/[+/=]/g,"x");S.items.push(d);S.cur=d.id}
+  await persist();S.err="";S.draft=null;S.shown={};S.view="detail";render();toast("Salvato");
+}
+async function copy(txt){
+  try{await navigator.clipboard.writeText(txt);toast("Copiato (si cancella tra 30 s)");
+    clearTimeout(copy.t);copy.t=setTimeout(()=>{navigator.clipboard.writeText(" ").catch(()=>{})},30000)}
+  catch(e){toast("Copia non riuscita")}
+}
+async function doExport(){
+  const raw=localStorage.getItem(KEY);if(!raw)return;
+  const name="mysafe-backup-"+new Date().toISOString().slice(0,10)+".json";
+  const file=new File([raw],name,{type:"application/json"});
+  try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:"Backup MySafe"});return}}catch(e){if(e.name==="AbortError")return}
+  const a=document.createElement("a");a.href=URL.createObjectURL(file);a.download=name;document.body.appendChild(a);a.click();a.remove();
+}
+async function doImport(f){
+  if(!f)return;
+  try{
+    const txt=await f.text();const v=JSON.parse(txt);
+    if(!v.salt||!v.iv||!v.ct)throw 0;
+    const pw=prompt("Password principale di questo backup:");if(!pw)return;
+    const salt=unb64(v.salt),key=await derive(pw,salt);
+    const data=await decrypt(key,v.iv,v.ct);
+    if(S.key&&!confirm("Questo sostituirà i dati attuali con quelli del backup. Continuare?"))return;
+    localStorage.setItem(KEY,txt);
+    S.salt=salt;S.key=key;S.items=data.items||[];S.view="list";bump();render();toast("Backup importato");
+  }catch(e){alert("Backup non valido o password errata.")}
+}
+async function doChangePw(){
+  const a=prompt("Nuova password principale (min. 10 caratteri):");if(!a)return;
+  if(a.length<10)return alert("Troppo corta.");
+  const b=prompt("Ripeti la nuova password:");if(a!==b)return alert("Non coincidono.");
+  S.salt=rnd(16);S.key=await derive(a,S.salt);await persist();toast("Password cambiata");
+}
+
+/* ---------- eventi ---------- */
+$app.addEventListener("click",async e=>{
+  const el=e.target.closest("[data-act]");if(!el)return;
+  const act=el.dataset.act;
+  if(act==="importLock"){e.preventDefault();const i=document.createElement("input");i.type="file";i.accept=".json";i.onchange=()=>doImport(i.files[0]);i.click();return}
+  if(act==="create")return doCreate();
+  if(act==="unlock")return doUnlock();
+  if(act==="lock")return lock();
+  if(act==="filter"){S.filter=el.dataset.k;return viewList()}
+  if(act==="open"){S.cur=el.dataset.id;S.shown={};S.view="detail";return render()}
+  if(act==="back"){S.view="list";S.cur=null;S.shown={};return render()}
+  if(act==="settings"){S.view="settings";return render()}
+  if(act==="add"){S.cur=null;S.draft=newDraft("login");S.err="";S.view="edit";return render()}
+  if(act==="type"){const t=el.dataset.k,keep=S.draft.title;S.draft=newDraft(t);S.draft.title=keep;return viewEdit()}
+  if(act==="edit"){S.draft=Object.assign({},curItem());S.err="";S.view="edit";return render()}
+  if(act==="cancel"){S.draft=null;S.err="";S.view=S.cur?"detail":"list";return render()}
+  if(act==="save")return doSave();
+  if(act==="gen"){const p=genPass();S.draft.pass=p;const i=document.getElementById("pf");i.value=p;setMeter("m3",p);return}
+  if(act==="toggle"){S.shown[el.dataset.k]=!S.shown[el.dataset.k];return viewDetail()}
+  if(act==="copy")return copy(curItem()[el.dataset.k]);
+  if(act==="visit"){let u=curItem()[el.dataset.k];if(!/^https?:\/\//i.test(u))u="https://"+u;window.open(u,"_blank","noopener");return}
+  if(act==="delete"){if(confirm("Eliminare questo elemento?")){S.items=S.items.filter(i=>i.id!==S.cur);await persist();S.cur=null;S.view="list";render();toast("Eliminato")}return}
+  if(act==="export")return doExport();
+  if(act==="import")return document.getElementById("file").click();
+  if(act==="chpw")return doChangePw();
+  if(act==="wipe"){if(confirm("Eliminare TUTTI i dati? L'operazione non è reversibile.")&&confirm("Sei sicuro? Hai fatto un backup?")){localStorage.removeItem(KEY);S.key=null;S.items=[];S.view="onboarding";render()}return}
+});
+
+/* ---------- avvio ---------- */
+(function icon(){
+  try{
+    const c=document.createElement("canvas");c.width=c.height=180;const x=c.getContext("2d");
+    const g=x.createLinearGradient(0,0,180,180);g.addColorStop(0,"#4f8cff");g.addColorStop(1,"#7a4fff");
+    x.fillStyle=g;x.fillRect(0,0,180,180);
+    x.fillStyle="#fff";x.fillRect(48,82,84,64);
+    x.lineWidth=12;x.strokeStyle="#fff";x.beginPath();x.arc(90,82,27,Math.PI,0);x.stroke();
+    x.fillStyle="#4f8cff";x.beginPath();x.arc(90,110,8,0,7);x.fill();x.fillRect(87,112,6,18);
+    const l=document.createElement("link");l.rel="apple-touch-icon";l.href=c.toDataURL("image/png");document.head.appendChild(l);
+  }catch(e){}
+})();
+if(!window.crypto||!crypto.subtle){
+  $app.innerHTML='<div class="empty">Questo browser non supporta la crittografia necessaria. Apri la pagina con Safari tramite HTTPS.</div>';
+}else{
+  S.view=localStorage.getItem(KEY)?"lock":"onboarding";render();
+}
+</script>
+</body>
+</html>
